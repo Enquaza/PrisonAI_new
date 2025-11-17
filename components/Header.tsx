@@ -22,7 +22,7 @@ export const Header: React.FC = () => {
               />
             </svg>
             <h1 className="text-xl font-bold text-slate-800 dark:text-white">
-              German Report Formalizer
+              Gefängnis-Bericht-AI
             </h1>
           </div>
         </div>

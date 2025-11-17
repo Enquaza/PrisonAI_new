@@ -7,15 +7,16 @@ interface ReportOutputProps {
   report: string;
   isLoading: boolean;
   error: string | null;
+  progress: string;
 }
 
-export const ReportOutput: React.FC<ReportOutputProps> = ({ report, isLoading, error }) => {
+export const ReportOutput: React.FC<ReportOutputProps> = ({ report, isLoading, error, progress }) => {
   const renderContent = () => {
     if (isLoading) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400">
           <Loader />
-          <p className="mt-4 text-center">Analysiere und formatiere den Bericht...</p>
+          <p className="mt-4 text-center">{progress || 'Analysiere und formatiere den Bericht...'}</p>
         </div>
       );
     }

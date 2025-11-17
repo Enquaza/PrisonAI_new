@@ -12,6 +12,7 @@ const App: React.FC = () => {
   const [formalReport, setFormalReport] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<string>('');
 
   const handleGenerateClick = useCallback(async () => {
     if (!informalReport.trim() || isLoading) return;
@@ -19,15 +20,19 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setFormalReport('');
+    setProgress('');
 
     try {
-      const result = await generateFormalReport(informalReport);
+      const result = await generateFormalReport(informalReport, (message) => {
+        setProgress(message);
+      });
       setFormalReport(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred. Please try again.');
       console.error(err);
     } finally {
       setIsLoading(false);
+      setProgress('');
     }
   }, [informalReport, isLoading]);
 
@@ -45,6 +50,7 @@ const App: React.FC = () => {
             report={formalReport}
             isLoading={isLoading}
             error={error}
+            progress={progress}
           />
         </div>
       </main>

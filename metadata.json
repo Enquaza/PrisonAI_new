@@ -1,5 +1,5 @@
 {
-  "name": "German Report Formalizer",
+  "name": "PrisonAI",
   "description": "An application that takes an informal text report in German, processes it using the Gemini API, and returns a formally structured version of the report.",
   "requestFramePermissions": []
 }
