@@ -31,7 +31,6 @@ Folgen:
 [Ärztliche Untersuchung, Disziplinarverfahren, etc.]
 
 Unterschrift: _______________________
-Datum: ___________________________
 `;
 
 const promptSteps = [
@@ -53,7 +52,7 @@ const promptSteps = [
   },
   {
     name: "Schritt 5/5: Endgültigen Bericht erstellen",
-    prompt: (_report: string, context: string) => `Sie sind ein Experte für das Verfassen von formellen Vorfallberichten im deutschen Justizvollzug. Füllen Sie die folgende Vorlage exakt aus. Nutzen Sie dafür AUSSCHLIESSLICH die zusammengefassten Informationen. Erfinden Sie keine Details. Kennzeichnen Sie fehlende Angaben mit Platzhaltern wie "[Angabe fehlt]".
+    prompt: (_report: string, context: string) => `Sie sind ein Experte für das Verfassen von formellen Vorfallberichten im deutschen Justizvollzug. Füllen Sie die folgende Vorlage exakt aus. Nutzen Sie dafür AUSSCHLIESSLICH die zusammengefassten Informationen. Erfinden Sie keine Details. Kennzeichnen Sie fehlende Angaben mit Platzhaltern wie "[Angabe fehlt]". Unterschrift Feld soll wie im Final report template angegeben belassen werden. 
 
 ZUSAMMENGEFASSTE INFORMATIONEN:
 ${context}
@@ -95,8 +94,9 @@ export const generateFormalReport = async (
         accumulatedContext += `**${stepNameForContext}**:\n${response.text}\n\n`;
       }
     }
-    
+
     throw new Error("Report generation process did not complete correctly.");
+
   } catch (error) {
     console.error("Error calling Gemini API:", error);
     if (error?.toString().includes('503') || error?.toString().includes('overloaded')) {
