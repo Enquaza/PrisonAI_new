@@ -1,8 +1,6 @@
-
 import React from 'react';
 import { TrashIcon } from './icons/TrashIcon';
 import { StoredReport } from '../App';
-
 
 interface PastReportsProps {
   reports: StoredReport[];

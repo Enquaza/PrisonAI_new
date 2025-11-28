@@ -1,0 +1,29 @@
+VORFALLBERICHT
+
+Fallnummer: [ID]
+Datum/Uhrzeit: [TT.MM.JJJJ, HH:MM]
+Ort: [Block, Zelle, Hof, etc.]
+Meldender Beamter: [Name, Dienstgrad]
+
+Beteiligte Person(en):
+- Häftling(e): [Namen, IDs]
+- Beamte(r): [Namen]
+
+Art des Vorfalls: [Verbale Aggression / Selbstverletzung / Sachbeschädigung / etc.]
+
+Beschreibung:
+[Hier die chronologische Beschreibung einfügen]
+
+Ergriffene Maßnahmen:
+[Hier die ergriffenen Maßnahmen einfügen]
+
+Verletzungen/Schäden:
+[Auflistung von Verletzungen oder Sachschäden, falls vorhanden.]
+
+Beweismittel:
+[Dateien, Bilder von Waffen, Blutergüssen, etc.]
+
+Folgen:
+[Ärztliche Untersuchung, Disziplinarverfahren, etc.]
+
+Unterschrift: _______________________
