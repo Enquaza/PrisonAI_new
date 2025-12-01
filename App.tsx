@@ -5,6 +5,7 @@ import { ReportOutput } from './components/ReportOutput';
 import { PastReports } from './components/PastReports';
 import { generateFormalReport } from './services/geminiService';
 import { api, ReportData } from './services/api';
+import { v4 as uuidv4 } from 'uuid';
 
 export type StoredReport = ReportData;
 
@@ -24,20 +25,25 @@ function App() {
   }, []);
 
   const handleGenerate = async () => {
-    if (!informalReport.trim()) return;
-    setIsLoading(true);
-    setError(null);
-    setFormalReport('');
+        if (!informalReport.trim()) return;
+        setIsLoading(true);
+        setError(null);
+        setFormalReport('');
 
-    try {
-      const result = await generateFormalReport(informalReport, (msg) => setProgress(msg));
-      setFormalReport(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
-      setProgress('');
-    }
+        try {
+            // NEU: ID hier erzeugen
+            const newCaseId = uuidv4();
+
+            // NEU: ID als dritten Parameter übergeben
+            const result = await generateFormalReport(informalReport, (msg) => setProgress(msg), newCaseId);
+
+            setFormalReport(result);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
+        } finally {
+            setIsLoading(false);
+            setProgress('');
+        }
   };
 
   const handleSave = async () => {
@@ -45,6 +51,7 @@ function App() {
     try {
       const savedReport = await api.save(formalReport);
       setStoredReports(prev => [savedReport, ...prev]);
+      setFormalReport(savedReport.formal);
       alert("Bericht erfolgreich gespeichert!");
     } catch (err) {
       alert("Fehler beim Speichern. Läuft der Server?");

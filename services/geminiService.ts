@@ -9,8 +9,13 @@ const promptSteps = [
     {
         name: "Schritt 1/5: Stammdaten extrahieren",
         prompt: (report: string) =>
-            `Extrahiere aus dem folgenden Bericht die Kerninformationen: Beteiligte Personen (Häftlinge, Beamte), 
-            Ort des Vorfalls, Datum und Uhrzeit. Gib nur diese Informationen kurz und prägnant wieder. Bericht: "${report}"`
+            `Analysiere den Bericht und extrahiere folgende Stammdaten:
+            1. Meldender Beamter (Suche nach 'Von:', 'Absender', 'Ich' oder Unterschriften).
+            2. Datum und Uhrzeit des Vorfalls.
+            3. Ort des Vorfalls.
+            4. Beteiligte Personen (Häftlinge, andere Beamte).
+            
+            Gib diese Daten kurz wieder. Bericht: "${report}"`
     },
     {
         name: "Schritt 2/5: Ereignisse chronologisch ordnen",
@@ -33,22 +38,25 @@ const promptSteps = [
     {
         name: "Schritt 5/5: Endgültigen Bericht erstellen",
         prompt: (_report: string, context: string) =>
-            `Sie sind ein Experte für das Verfassen von formellen Vorfallberichten im deutschen Justizvollzug. 
-            Füllen Sie die folgende Vorlage exakt aus. Nutzen Sie dafür AUSSCHLIESSLICH die zusammengefassten Informationen. 
-            Erfinden Sie keine Details. Kennzeichnen Sie fehlende Angaben mit Platzhaltern wie "[Angabe fehlt]". 
-            Unterschrift Feld soll wie im Final report template angegeben belassen werden. 
+            `Sie sind ein Experte für das Verfassen von formellen Vorfallberichten. 
+            Füllen Sie die Vorlage aus.
+            
+            WICHTIG ZUM BEAMTEN: Nutzen Sie den Namen aus Schritt 1 (Meldender Beamter) für das Feld 'Meldender Beamter'. Schreiben Sie nicht '[Angabe fehlt]', wenn ein Absender im Text erkennbar war (z.B. 'Schulze').
+            
+            WICHTIG ZUR ID: Lassen Sie das Feld "Fallnummer:" einfach so stehen, wie es in der Vorlage ist (oder schreiben Sie "Fallnummer: [ID]"). Das System füllt dies automatisch.
 
-        ZUSAMMENGEFASSTE INFORMATIONEN:
-        ${context}
-        
-        VORLAGE:
-        ${FINAL_REPORT_TEMPLATE}`
+            ZUSAMMENGEFASSTE INFORMATIONEN:
+            ${context}
+            
+            VORLAGE:
+            ${FINAL_REPORT_TEMPLATE}`
     }
 ];
 
 export const generateFormalReport = async (
     informalReport: string,
-    onProgress: (message: string) => void
+    onProgress: (message: string) => void,
+    caseId: string // <--- NEUER PARAMETER
 ): Promise<string> => {
     if (!process.env.GEMINI_API_KEY) {
         throw new Error("API key is not set. Please set the GEMINI_API_KEY environment variable.");
@@ -60,7 +68,12 @@ export const generateFormalReport = async (
     try {
         for (const step of promptSteps) {
             onProgress(step.name);
-            const currentPrompt = step.prompt(informalReport, accumulatedContext);
+            let promptContext = accumulatedContext;
+            if (step.name.includes("Schritt 5")) {
+                promptContext += `\n\nVERWENDEN SIE DIESE FALLNUMMER: ${caseId}`;
+            }
+
+            const currentPrompt = step.prompt(informalReport, promptContext);
 
             const response = await ai.models.generateContent({
                 model: GEMINI_MODEL,
@@ -69,7 +82,7 @@ export const generateFormalReport = async (
 
             if (promptSteps.at(-1) !== step) {
                 const stepNameForContext = step.name.split(':')[1].trim();
-                accumulatedContext += `**${stepNameForContext}**:\n${response.text}\n\n`;
+                accumulatedContext += `${stepNameForContext}:\n${response.text}\n\n`;
                 continue;
             }
 

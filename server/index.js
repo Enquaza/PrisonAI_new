@@ -51,8 +51,16 @@ app.post('/api/reports', (req, res) => {
 
         const reports = readReports();
 
+        // 1. Versuchen, die ID aus dem Text zu lesen (Regex sucht nach Fallnummer: <ID>)
+        const idMatch = formalReport.match(/Fallnummer:\s*([^\n\r]+)/);
+
+        // Wenn eine ID gefunden wurde, nimm sie. Sonst generiere eine neue (Fallback).
+        const reportId = idMatch && idMatch[1].trim() !== '[Angabe fehlt]'
+            ? idMatch[1].trim()
+            : uuidv4();
+
         const newReport = {
-            id: uuidv4(),
+            id: reportId,
             formal: formalReport,
             date: new Date().toISOString()
         };
