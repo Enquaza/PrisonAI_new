@@ -1,148 +1,133 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ReportInput } from './components/ReportInput';
 import { ReportOutput } from './components/ReportOutput';
-import { Loader } from './components/Loader';
-import { SparklesIcon } from './components/icons/SparklesIcon';
-import { generateFormalReport } from './services/geminiService';
 import { PastReports } from './components/PastReports';
+import { generateFormalReport } from './services/geminiService';
+import { api, ReportData } from './services/api';
 
-const STORAGE_KEY = 'prisonAI_reports';
+export type StoredReport = ReportData;
 
-export type StoredReport = {
-  id: number;
-  informal: string;
-  formal: string;
-  date: string;
-};
-
-const App: React.FC = () => {
-  const [informalReport, setInformalReport] = useState<string>('');
-  const [formalReport, setFormalReport] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+function App() {
+  const [informalReport, setInformalReport] = useState('');
+  const [formalReport, setFormalReport] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<string>('');
-  const [pastReports, setPastReports] = useState<StoredReport[]>([]);
+  const [progress, setProgress] = useState('');
 
-  // Load reports from localStorage on initial render
+  const [storedReports, setStoredReports] = useState<ReportData[]>([]);
+
   useEffect(() => {
-    try {
-      const storedReports = localStorage.getItem(STORAGE_KEY);
-      if (storedReports) {
-        setPastReports(JSON.parse(storedReports));
-      }
-    } catch (err) {
-      console.error("Failed to load past reports from storage:", err);
-    }
+    api.getAll()
+        .then(data => setStoredReports(data))
+        .catch(err => console.error("Could not load reports:", err));
   }, []);
 
-  // Save reports to localStorage whenever they change
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(pastReports));
-    } catch (err) {
-      console.error("Failed to save past reports to storage:", err);
-    }
-  }, [pastReports]);
-
-  const saveReport = (informal: string, formal: string) => {
-    const newReport: StoredReport = {
-      id: Date.now(),
-      informal,
-      formal,
-      date: new Date().toISOString(),
-    };
-    // Add new report to the beginning of the list
-    setPastReports(prevReports => [newReport, ...prevReports]);
-  };
-
-  const handleDeleteReport = useCallback((id: number) => {
-    setPastReports(prev => prev.filter(report => report.id !== id));
-  }, []);
-
-  const handleClearAllReports = useCallback(() => {
-    if (window.confirm('Möchten Sie wirklich alle vergangenen Berichte löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
-      setPastReports([]);
-    }
-  }, []);
-
-  const handleSelectReport = useCallback((report: StoredReport) => {
-    setInformalReport(report.informal);
-    setFormalReport(report.formal);
-    setError(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
-  const handleGenerateClick = useCallback(async () => {
-    if (!informalReport.trim() || isLoading) return;
-
+  const handleGenerate = async () => {
+    if (!informalReport.trim()) return;
     setIsLoading(true);
     setError(null);
     setFormalReport('');
-    setProgress('');
 
     try {
-      const result = await generateFormalReport(informalReport, (message) => {
-        setProgress(message);
-      });
+      const result = await generateFormalReport(informalReport, (msg) => setProgress(msg));
       setFormalReport(result);
-      saveReport(informalReport, result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred. Please try again.');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
       setProgress('');
     }
-  }, [informalReport, isLoading]);
+  };
+
+  const handleSave = async () => {
+    if (!formalReport) return;
+    try {
+      const savedReport = await api.save(formalReport);
+      setStoredReports(prev => [savedReport, ...prev]);
+      alert("Bericht erfolgreich gespeichert!");
+    } catch (err) {
+      alert("Fehler beim Speichern. Läuft der Server?");
+    }
+  };
+
+  const handleDeleteReport = async (id: any) => {
+    const reportId = String(id);
+    try {
+      await api.delete(reportId);
+      setStoredReports(prev => prev.filter(r => r.id !== reportId));
+    } catch (err) {
+      alert("Fehler beim Löschen.");
+    }
+  };
+
+  const handleClearAll = async () => {
+    if(!window.confirm("Wirklich alle Berichte löschen?")) return;
+    try {
+      await api.clearAll();
+      setStoredReports([]);
+    } catch (err) {
+      alert("Fehler beim Löschen.");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans">
-      <Header />
-      <main className="container mx-auto p-4 md:p-6 lg:p-8 flex flex-col flex-grow">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 flex-grow">
-          <ReportInput
-            value={informalReport}
-            onChange={(e) => setInformalReport(e.target.value)}
-            placeholder="Geben Sie hier Ihren informellen Bericht auf Deutsch ein..."
-          />
-          <ReportOutput
-            report={formalReport}
-            isLoading={isLoading}
-            error={error}
-            progress={progress}
-          />
-        </div>
-      </main>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200 flex flex-col">
+        <Header />
 
-      <PastReports 
-        reports={pastReports}
-        onSelectReport={handleSelectReport}
-        onDeleteReport={handleDeleteReport}
-        onClearAll={handleClearAllReports}
-      />
+        {/* WICHTIG: Kein h-screen oder feste Höhe hier! */}
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
 
-      <footer className="sticky bottom-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="container mx-auto flex justify-center">
+          {/* Grid Layout: Auf Desktop nebeneinander, aber mit 'items-start', damit sie unabhängig wachsen können */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mb-16">
+
+            {/* LINKE SEITE */}
+            <div className="flex flex-col gap-4 w-full">
+              {/* Min-Height sorgt dafür, dass es auch leer gut aussieht */}
+              <div className="min-h-[500px]">
+                <ReportInput
+                    value={informalReport}
+                    onChange={(e) => setInformalReport(e.target.value)}
+                    placeholder="Fügen Sie hier Ihren informellen Bericht ein..."
+                />
+              </div>
+
               <button
-                  onClick={handleGenerateClick}
+                  onClick={handleGenerate}
                   disabled={isLoading || !informalReport.trim()}
-                  className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2"
               >
-                  {isLoading ? (
-                      <Loader />
-                  ) : (
-                      <>
-                          <SparklesIcon className="w-6 h-6" />
-                          <span>Formellen Bericht erstellen</span>
-                      </>
-                  )}
+                {isLoading ? 'Verarbeite...' : 'Bericht Generieren'}
+                {!isLoading && (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                )}
               </button>
+            </div>
+
+            {/* RECHTE SEITE */}
+            <div className="w-full min-h-[500px]">
+              <ReportOutput
+                  report={formalReport}
+                  isLoading={isLoading}
+                  error={error}
+                  progress={progress}
+                  onSave={handleSave}
+              />
+            </div>
           </div>
-      </footer>
-    </div>
+
+          {/* UNTEN: HISTORY - Durch margin-top (mt-12) Abstand halten */}
+          <div className="mt-12">
+            <PastReports
+                reports={storedReports}
+                onSelectReport={(report) => setFormalReport(report.formal)}
+                onDeleteReport={handleDeleteReport}
+                onClearAll={handleClearAll}
+            />
+          </div>
+        </main>
+      </div>
   );
-};
+}
 
 export default App;

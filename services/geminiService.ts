@@ -1,8 +1,9 @@
-import {GoogleGenAI} from "@google/genai";
-import {readFileSync} from 'fs';
+import { GoogleGenAI } from "@google/genai";
 
-const GEMINI_MODEL = "gemini-flash-latest"
-const FINAL_REPORT_TEMPLATE = readFileSync('./reportTemplate.txt', 'utf-8');
+// @ts-ignore
+import FINAL_REPORT_TEMPLATE from './reportTemplate.txt?raw';
+
+const GEMINI_MODEL = "gemini-flash-latest";
 
 const promptSteps = [
     {
